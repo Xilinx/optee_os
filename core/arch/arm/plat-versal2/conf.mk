@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 #
-# Copyright (c) 2023-2024, Advanced Micro Devices, Inc. All rights reserved.
-#
+# Copyright (c) 2023-2026, Advanced Micro Devices, Inc. All rights reserved.
 #
 
 PLATFORM_FLAVOR ?= generic
@@ -61,6 +60,10 @@ CFG_CONSOLE_UART ?= 0
 
 # PS GPIO Controller configuration.
 CFG_AMD_PS_GPIO ?= n
+
+# AMD ASU Specific configs
+CFG_AMD_ASU_SUPPORT ?= y
+CFG_AMD_APU_LCL_IPI_ID ?= 0x0004
 
 ifeq ($(CFG_AMD_PS_GPIO),y)
 $(call force,CFG_MAP_EXT_DT_SECURE,y)

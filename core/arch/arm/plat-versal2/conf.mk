@@ -64,6 +64,15 @@ CFG_AMD_PS_GPIO ?= n
 # AMD ASU Specific configs
 CFG_AMD_ASU_SUPPORT ?= y
 CFG_AMD_APU_LCL_IPI_ID ?= 0x0004
+# Current HASH engine does not support partial state copy operation. Any
+# operation from REE involving state copy can crash the OS when driver
+# is enabled.
+CFG_AMD_ASU_HASH ?= n
+ifeq ($(CFG_AMD_ASU_HASH),y)
+$(warning WARNING: ASU HASH engine do not support partial state copy operations)
+$(warning WARNING: Any attempt by the REE to perform a state copy operation \
+  will result in a crash of the TEE.)
+endif
 
 ifeq ($(CFG_AMD_PS_GPIO),y)
 $(call force,CFG_MAP_EXT_DT_SECURE,y)

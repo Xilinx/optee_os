@@ -12,4 +12,9 @@ $(call force,CFG_CRYPTO_DRV_HASH,y)
 
 CFG_AMD_ASU_HUK ?= y
 
+ifeq ($(CFG_AMD_ASU_RSA),y)
+$(call force,CFG_CRYPTO_DRV_ACIPHER,y)
+$(call force,CFG_CRYPTO_DRV_RSA,y)
+endif
+
 endif

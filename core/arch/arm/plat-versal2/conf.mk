@@ -84,6 +84,8 @@ $(warning WARNING: Any attempt by the REE to perform a state copy operation \
   will result in a crash of the TEE.)
 endif
 
+CFG_AMD_ASU_RSA ?= y
+
 ifeq ($(CFG_RPMB_FS),y)
 $(call force,CFG_AMD_ASU_HUK,y)
 endif

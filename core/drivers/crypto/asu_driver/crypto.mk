@@ -17,4 +17,9 @@ $(call force,CFG_CRYPTO_DRV_ACIPHER,y)
 $(call force,CFG_CRYPTO_DRV_RSA,y)
 endif
 
+ifeq ($(CFG_AMD_ASU_ECC),y)
+$(call force,CFG_CRYPTO_DRV_ECC,y)
+$(call force,CFG_CRYPTO_DRV_ACIPHER,y)
+endif
+
 endif

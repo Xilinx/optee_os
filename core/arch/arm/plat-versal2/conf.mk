@@ -90,6 +90,8 @@ CFG_AMD_ASU_RSA ?= y
 CFG_AMD_ASU_TRNG ?= y
 CFG_WITH_SOFTWARE_PRNG ?= n
 
+CFG_AMD_ASU_ECC ?= y
+
 ifeq ($(CFG_RPMB_FS),y)
 $(call force,CFG_AMD_ASU_HUK,y)
 endif

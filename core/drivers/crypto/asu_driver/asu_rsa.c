@@ -41,7 +41,7 @@
 #define ASU_RSA_PSS_SIGN_VER_SHA3_CMD_ID	10U
 
 /* ASU KeyManager command IDs used for RSA key generation */
-#define ASU_KM_GEN_RSA_KEY_PAIR_CMD_ID		5U
+#define ASU_KM_GEN_RSA_KEY_PAIR_CMD_ID		6U
 
 /* RSA key size */
 #define ASU_RSA_2048_KEY_SIZE			256U

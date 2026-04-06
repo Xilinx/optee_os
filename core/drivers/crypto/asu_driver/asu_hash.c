@@ -161,7 +161,8 @@ static TEE_Result asu_sha_op(struct asu_hash_ctx *asu_hashctx,
 	uint32_t status = 0;
 
 	header = asu_create_header(ASU_SHA_OPERATION_CMD_ID,
-				   asu_hashctx->uniqueid, module, 0U);
+				   asu_hashctx->uniqueid, module,
+				   sizeof(*op) / sizeof(uint32_t));
 	ret = asu_update_queue_buffer_n_send_ipi(&asu_hashctx->cparam, op,
 						 sizeof(*op), header,
 						 &status);

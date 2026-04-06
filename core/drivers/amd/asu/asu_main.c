@@ -41,6 +41,8 @@
 struct asu_client {
 	struct asu_channel_memory *chnl_memptr;
 	uint32_t is_ready;
+	uint32_t p0_last_index;
+	uint32_t p1_last_index;
 	unsigned int slock;          /* chnl_memptr spin lock */
 	void *global_ctrl;
 	void *doorbell;
@@ -188,40 +190,33 @@ void asu_free_unique_id(uint8_t uniqueid)
 }
 
 /*
- * get_free_index() - Find a free buffer index in the specified priority queue
- * @priority: Priority level (ASU_PRIORITY_HIGH or ASU_PRIORITY_LOW)
+ * get_free_index() - Find a free buffer index in the specified queue
+ * @qptr: Pointer to the channel queue structure to search
+ * @last_index: Pointer to track the starting search index for
+ *              round-robin allocation
  *
- * Searches for an available buffer slot in either the high priority (P0) or
- * low priority (P1) channel queue. Updates the next free index pointer.
+ * Searches for an available buffer slot in the specified channel queue.
+ * Performs a circular search of ASU_MAX_BUFFERS slots starting from the
+ * provided index, wrapping around if necessary.
  *
  * Return: Buffer index (0 to ASU_MAX_BUFFERS-1) or ASU_MAX_BUFFERS if queue
  *	   is full
  */
-static uint8_t get_free_index(uint8_t priority)
+static uint8_t get_free_index(struct asu_channel_queue *qptr,
+			      uint32_t *last_index)
 {
-	struct asu_channel_queue *qptr = NULL;
-	uint8_t index = 0;
-	uint32_t state = 0;
+	uint8_t index = *last_index;
+	uint8_t iterations = 0;
 
-	state = cpu_spin_lock_xsave(&asu->slock);
-
-	if (priority == ASU_PRIORITY_HIGH)
-		qptr = &asu->chnl_memptr->p0_chnl_q;
-	else
-		qptr = &asu->chnl_memptr->p1_chnl_q;
-
-	while (index < ASU_MAX_BUFFERS) {
-		if (qptr->queue_bufs[index].reqbufstatus == 0U ||
-		    qptr->queue_bufs[index].respbufstatus == 0U)
+	while (iterations < ASU_MAX_BUFFERS) {
+		index = (index + 1) % ASU_MAX_BUFFERS;
+		if (qptr->queue_bufs[index].reqbufstatus == 0U)
 			break;
-
-		index++;
+		iterations++;
 	}
 
-	if (index < ASU_MAX_BUFFERS)
-		qptr->queue_bufs[index].reqbufstatus = ASU_COMMAND_IS_PRESENT;
-
-	cpu_spin_unlock_xrestore(&asu->slock, state);
+	if (iterations == ASU_MAX_BUFFERS)
+		return ASU_MAX_BUFFERS;
 
 	return index;
 }
@@ -273,10 +268,12 @@ TEE_Result asu_update_queue_buffer_n_send_ipi(struct asu_client_params *param,
 {
 	TEE_Result ret = TEE_ERROR_GENERIC;
 	uint8_t freeindex = 0;
+	uint32_t *last_index;
+	uint32_t state = 0;
 	struct asu_channel_queue_buf *bufptr = NULL;
 	struct asu_channel_queue *qptr = NULL;
 
-	if (!param) {
+	if (!param || !status) {
 		EMSG("Invalid parameters provided");
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
@@ -286,28 +283,34 @@ TEE_Result asu_update_queue_buffer_n_send_ipi(struct asu_client_params *param,
 		return TEE_ERROR_BAD_STATE;
 	}
 
-	freeindex = get_free_index(param->priority);
+	if (param->priority == ASU_PRIORITY_HIGH) {
+		qptr = &asu->chnl_memptr->p0_chnl_q;
+		last_index = &asu->p0_last_index;
+	} else {
+		qptr = &asu->chnl_memptr->p1_chnl_q;
+		last_index = &asu->p1_last_index;
+	}
+
+	state = cpu_spin_lock_xsave(&asu->slock);
+	freeindex = get_free_index(qptr, last_index);
 	if (freeindex == ASU_MAX_BUFFERS) {
 		EMSG("ASU buffers full");
+		cpu_spin_unlock_xrestore(&asu->slock, state);
 		return TEE_ERROR_SHORT_BUFFER;
 	}
 
-	if (param->priority == ASU_PRIORITY_HIGH) {
-		bufptr = &asu->chnl_memptr->p0_chnl_q.queue_bufs[freeindex];
-		qptr = &asu->chnl_memptr->p0_chnl_q;
-	} else {
-		bufptr = &asu->chnl_memptr->p1_chnl_q.queue_bufs[freeindex];
-		qptr = &asu->chnl_memptr->p1_chnl_q;
-	}
-
+	bufptr = &qptr->queue_bufs[freeindex];
 	bufptr->req.header = header;
 	if (req_buffer && size != 0U)
 		memcpy(bufptr->req.arg, req_buffer, size);
 
 	bufptr->respbufstatus = 0;
-
+	qptr->queue_bufs[freeindex].reqbufstatus = ASU_COMMAND_IS_PRESENT;
+	*last_index = freeindex;
 	qptr->cmd_is_present = true;
 	qptr->req_sent++;
+	cpu_spin_unlock_xrestore(&asu->slock, state);
+
 	ret = send_doorbell();
 	if (ret != TEE_SUCCESS) {
 		EMSG("Failed to communicate to ASU");
@@ -469,6 +472,8 @@ static TEE_Result asu_init(void)
 	asu->chnl_memptr = asu_shmem;
 	asu->is_ready = ASU_CLIENT_READY;
 	asu->slock = SPINLOCK_UNLOCK;
+	asu->p0_last_index = ASU_MAX_BUFFERS - 1;
+	asu->p1_last_index = ASU_MAX_BUFFERS - 1;
 
 	IMSG("ASU initialization complete");
 

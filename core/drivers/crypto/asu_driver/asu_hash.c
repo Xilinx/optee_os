@@ -40,6 +40,8 @@
 #define ASU_SHAKE_256_MAX_HASH_LEN		136U
 #define ASU_DATA_CHUNK_LEN			4096U
 
+#define ASU_DMA_ALIGNMENT			64U
+
 struct asu_shadev {
 	bool sha2_available;
 	bool sha3_available;
@@ -65,11 +67,6 @@ struct asu_hash_ctx {
 	uint32_t shastart;
 	uint8_t uniqueid;
 	uint8_t module;
-};
-
-struct asu_hash_cbctx {
-	uint8_t *digest;
-	size_t len;
 };
 
 static const struct crypto_hash_ops asu_hash_ops;
@@ -242,18 +239,6 @@ static TEE_Result asu_hash_do_update(struct crypto_hash_ctx *ctx,
 	return asu_hash_update(asu_hashctx, (uint8_t *)data, len);
 }
 
-static TEE_Result asu_hash_cb(void *cbrefptr, struct asu_resp_buf *resp_buf)
-{
-	struct asu_hash_cbctx *cbctx = NULL;
-	uint8_t *src_addr = NULL;
-
-	cbctx = cbrefptr;
-	src_addr = (uint8_t *)&resp_buf->arg[ASU_RESPONSE_BUFF_ADDR_INDEX];
-	memcpy(cbctx->digest, src_addr, cbctx->len);
-
-	return TEE_SUCCESS;
-}
-
 /**
  * asu_hash_final() - Send final request to engine.
  * @asu_hashctx:Request private hash context
@@ -271,22 +256,18 @@ static TEE_Result asu_hash_final(struct asu_hash_ctx *asu_hashctx,
 	TEE_Result ret = TEE_SUCCESS;
 	struct asu_sha_op_cmd op = {};
 	struct asu_client_params *cparam = NULL;
-	struct asu_hash_cbctx cbctx = {};
+	uint8_t *dma_digest = NULL;
 
 	if (!digest || len == 0)
 		return TEE_ERROR_BAD_PARAMETERS;
 
-	cbctx.digest = digest;
-	cbctx.len = len;
 	cparam = &asu_hashctx->cparam;
 	cparam->priority = ASU_PRIORITY_HIGH;
-	cparam->cbptr = &cbctx;
-	cparam->cbhandler = asu_hash_cb;
+	cparam->cbhandler = NULL;
 
 	/* Inputs of SHA request */
 	op.dataaddr = 0;
 	op.datasize = 0;
-	op.hashaddr = UINT64_MAX;
 	op.hashbufsize = len;
 	if (asu_hashctx->shamode == ASU_SHA_MODE_SHA256)
 		op.hashbufsize = ASU_SHA_256_HASH_LEN;
@@ -295,12 +276,27 @@ static TEE_Result asu_hash_final(struct asu_hash_ctx *asu_hashctx,
 	else if (asu_hashctx->shamode == ASU_SHA_MODE_SHA512)
 		op.hashbufsize = ASU_SHA_512_HASH_LEN;
 
+	dma_digest = memalign(ASU_DMA_ALIGNMENT, op.hashbufsize);
+	if (!dma_digest) {
+		EMSG("Failed to allocate DMA buffer for hash digest");
+		return TEE_ERROR_OUT_OF_MEMORY;
+	}
+
 	op.shamode = asu_hashctx->shamode;
 	op.islast = 1;
 	op.opflags = ASU_SHA_FINISH | asu_hashctx->shastart;
+	op.hashaddr = virt_to_phys(dma_digest);
+	cache_operation(TEE_CACHEFLUSH, dma_digest, op.hashbufsize);
 	ret = asu_sha_op(asu_hashctx, &op, asu_hashctx->module);
-	cache_operation(TEE_CACHEFLUSH, digest, op.hashbufsize);
+	if (ret) {
+		EMSG("SHA final operation failed");
+		goto out;
+	}
+	cache_operation(TEE_CACHEINVALIDATE, dma_digest, op.hashbufsize);
+	memcpy(digest, dma_digest, op.hashbufsize);
 
+out:
+	free(dma_digest);
 	return ret;
 }
 

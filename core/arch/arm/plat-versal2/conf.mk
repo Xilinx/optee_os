@@ -86,6 +86,10 @@ endif
 
 CFG_AMD_ASU_RSA ?= y
 
+# ASU TRNG driver configuration
+CFG_AMD_ASU_TRNG ?= y
+CFG_WITH_SOFTWARE_PRNG ?= n
+
 ifeq ($(CFG_RPMB_FS),y)
 $(call force,CFG_AMD_ASU_HUK,y)
 endif

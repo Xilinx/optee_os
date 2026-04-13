@@ -36,7 +36,7 @@
 #define ASU_GLOBAL_CNTRL_FW_IS_PRESENT_MASK	0x10U
 #define ASU_ASUFW_BIT_CHECK_TIMEOUT_VALUE	0xFFFFFU
 
-#define ASU_RESP_TIMEOUT		0x1E8480U /* 2sec */
+#define ASU_RESP_TIMEOUT		2000000U /* 2sec */
 
 #define ASU_CHNL_IPI_BITMASK		GENMASK_32(31, 16)
 
@@ -321,11 +321,8 @@ TEE_Result asu_update_queue_buffer_n_send_ipi(struct asu_client_params *param,
 	}
 
 	/*
-	 * Timeout is armed unconditionally before the loop.  On each iteration
-	 * the exception mask is sampled immediately before wfe() - no code
-	 * between the check and the call - so if IRQs are masked at that
-	 * instant we spin rather than hang.  The interrupt handler calls sev()
-	 * to wake wfe() when the response arrives.
+	 * Timeout is armed unconditionally before the loop.
+	 * If IRQs are masked we spin instead of wfe().
 	 */
 	resp_to = timeout_init_us(ASU_RESP_TIMEOUT);
 	while (io_read8((vaddr_t)&bufptr->respbufstatus) !=

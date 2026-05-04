@@ -274,7 +274,7 @@ static TEE_Result asu_rsa_sha_cfg_from_hash_algo(uint32_t hash_algo,
 						 uint8_t *sha_mode)
 {
 	if (!sha_type || !sha_mode) {
-		EMSG("Invalid SHA cfg output pointers");
+		DMSG("Invalid SHA cfg output pointers");
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
@@ -304,7 +304,7 @@ static TEE_Result asu_rsa_sha_cfg_from_hash_algo(uint32_t hash_algo,
 		*sha_mode = ASU_RSA_SHA_MODE_512;
 		break;
 	default:
-		EMSG("Unsupported hash algo=0x%08" PRIx32, hash_algo);
+		DMSG("Unsupported hash algo=0x%08" PRIx32, hash_algo);
 		return TEE_ERROR_NOT_IMPLEMENTED;
 	}
 
@@ -343,7 +343,7 @@ static TEE_Result asu_rsa_sha_cfg_from_oaep_algo(uint32_t algo,
 		return asu_rsa_sha_cfg_from_hash_algo(TEE_ALG_SHA3_512,
 					sha_type, sha_mode);
 	default:
-		EMSG("Unsupported OAEP algo=0x%08" PRIx32, algo);
+		DMSG("Unsupported OAEP algo=0x%08" PRIx32, algo);
 		return TEE_ERROR_NOT_IMPLEMENTED;
 	}
 }
@@ -575,7 +575,7 @@ static TEE_Result asu_rsa_send_cmd(void *req, uint32_t req_size,
 			uint32_t fw_code = (uint32_t)status &
 					   ASU_RSA_FW_STATUS_CODE_MASK;
 
-			EMSG("Firmware failure cmd=%" PRIu32
+			DMSG("Firmware failure cmd=%" PRIu32
 				" status=0x%x fw_code=0x%03" PRIx32,
 				(uint32_t)cmd_id, status, fw_code);
 		}
@@ -849,12 +849,12 @@ static TEE_Result asu_rsa_pss_sign_gen_cmd(struct asu_rsa_padding_params *req)
 		return TEE_ERROR_BAD_PARAMETERS;
 
 	if (asu_rsa_validate_input_params(&req->rsa_op, false)) {
-		EMSG("Invalid RSA input params");
+		DMSG("Invalid RSA input params");
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
 	if (!req->rsa_op.output_data_addr) {
-		EMSG("Missing output buffer");
+		DMSG("Missing output buffer");
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
@@ -862,12 +862,12 @@ static TEE_Result asu_rsa_pss_sign_gen_cmd(struct asu_rsa_padding_params *req)
 	    req->rsa_op.len != TEE_SHA384_HASH_SIZE &&
 	    req->rsa_op.len != TEE_SHA512_HASH_SIZE &&
 	    req->input_data_type == ASU_RSA_HASHED_INPUT_DATA) {
-		EMSG("Invalid hashed input length=%" PRIu32, req->rsa_op.len);
+		DMSG("Invalid hashed input length=%" PRIu32, req->rsa_op.len);
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
 	if (asu_rsa_sha_validate_mode_and_type(req->sha_type, req->sha_mode)) {
-		EMSG("Invalid sha_type=%u sha_mode=%u",
+		DMSG("Invalid sha_type=%u sha_mode=%u",
 		     req->sha_type, req->sha_mode);
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
@@ -897,12 +897,12 @@ static TEE_Result asu_rsa_pss_sign_ver_cmd(struct asu_rsa_padding_params *req)
 		return TEE_ERROR_BAD_PARAMETERS;
 
 	if (asu_rsa_validate_input_params(&req->rsa_op, false)) {
-		EMSG("Invalid RSA input params");
+		DMSG("Invalid RSA input params");
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
 	if (!req->signature_data_addr) {
-		EMSG("Missing signature buffer");
+		DMSG("Missing signature buffer");
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
@@ -910,19 +910,19 @@ static TEE_Result asu_rsa_pss_sign_ver_cmd(struct asu_rsa_padding_params *req)
 	    req->rsa_op.len != TEE_SHA384_HASH_SIZE &&
 	    req->rsa_op.len != TEE_SHA512_HASH_SIZE &&
 	    req->input_data_type == ASU_RSA_HASHED_INPUT_DATA) {
-		EMSG("Invalid hashed input length=%" PRIu32, req->rsa_op.len);
+		DMSG("Invalid hashed input length=%" PRIu32, req->rsa_op.len);
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
 	if (req->signature_len != req->rsa_op.key_size) {
-		EMSG("Invalid signature length=%" PRIu32
+		DMSG("Invalid signature length=%" PRIu32
 		     " key_size=%" PRIu32,
 		     req->signature_len, req->rsa_op.key_size);
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
 
 	if (asu_rsa_sha_validate_mode_and_type(req->sha_type, req->sha_mode)) {
-		EMSG("Invalid sha_type=%u sha_mode=%u",
+		DMSG("Invalid sha_type=%u sha_mode=%u",
 		     req->sha_type, req->sha_mode);
 		return TEE_ERROR_BAD_PARAMETERS;
 	}
@@ -938,13 +938,13 @@ static TEE_Result asu_rsa_pss_sign_ver_cmd(struct asu_rsa_padding_params *req)
 	    (additional_status == ASU_RSA_PSS_RIGHT_MOST_CMP_FAIL ||
 	     additional_status == ASU_RSA_PSS_HASH_CMP_FAIL ||
 	     additional_status == ASU_RSA_PSS_SIGN_VER_ERROR)) {
-		EMSG("Signature mismatch status=0x%08" PRIx32,
+		DMSG("Signature mismatch status=0x%08" PRIx32,
 		     additional_status);
 		return TEE_ERROR_SIGNATURE_INVALID;
 	}
 
 	if (!ret && additional_status != ASU_RSA_PSS_SIGNATURE_VERIFIED) {
-		EMSG("Signature verification fail status=0x%08" PRIx32,
+		DMSG("Signature verification fail status=0x%08" PRIx32,
 		     additional_status);
 		ret = TEE_ERROR_SIGNATURE_INVALID;
 		return ret;
@@ -1242,14 +1242,14 @@ static TEE_Result asu_rsa_encrypt(struct drvcrypt_rsa_ed *rsa_data)
 		ret = asu_rsa_sw_rsanopad_encrypt(rsa_data);
 		goto OUT;
 	default:
-		EMSG("Unsupported rsa_id=%" PRIu32, (uint32_t)rsa_data->rsa_id);
+		DMSG("Unsupported rsa_id=%" PRIu32, (uint32_t)rsa_data->rsa_id);
 		ret = TEE_ERROR_NOT_IMPLEMENTED;
 		goto OUT;
 	}
 
 	if (rsa_data->cipher.length < rsa_data->key.n_size) {
 		rsa_data->cipher.length = rsa_data->key.n_size;
-		EMSG("Short output buffer");
+		DMSG("Short output buffer");
 		ret = TEE_ERROR_SHORT_BUFFER;
 		goto OUT;
 	}
@@ -1264,7 +1264,7 @@ static TEE_Result asu_rsa_encrypt(struct drvcrypt_rsa_ed *rsa_data)
 	ret = asu_rsa_pack_public_key(rsa_data->key.key, rsa_data->key.n_size,
 				      key_comp);
 	if (ret) {
-		EMSG("Public key pack failed ret=0x%x", ret);
+		DMSG("Public key pack failed ret=0x%x", ret);
 		goto OUT;
 	}
 
@@ -1311,7 +1311,7 @@ static TEE_Result asu_rsa_encrypt(struct drvcrypt_rsa_ed *rsa_data)
 	}
 
 	if (ret) {
-		EMSG("Command failed ret=0x%x", ret);
+		DMSG("Command failed ret=0x%x", ret);
 		goto OUT;
 	}
 
@@ -1429,7 +1429,7 @@ static TEE_Result asu_rsa_decrypt(struct drvcrypt_rsa_ed *rsa_data)
 		ret = asu_rsa_sw_rsanopad_decrypt(rsa_data);
 		goto OUT;
 	default:
-		EMSG("Unsupported rsa_id=%" PRIu32, (uint32_t)rsa_data->rsa_id);
+		DMSG("Unsupported rsa_id=%" PRIu32, (uint32_t)rsa_data->rsa_id);
 		ret = TEE_ERROR_NOT_SUPPORTED;
 		goto OUT;
 	}
@@ -1444,7 +1444,7 @@ static TEE_Result asu_rsa_decrypt(struct drvcrypt_rsa_ed *rsa_data)
 	ret = asu_rsa_pack_private_key(rsa_data->key.key, rsa_data->key.n_size,
 				       key_comp);
 	if (ret) {
-		EMSG("Private key pack failed ret=0x%x", ret);
+		DMSG("Private key pack failed ret=0x%x", ret);
 		goto OUT;
 	}
 
@@ -1508,12 +1508,12 @@ static TEE_Result asu_rsa_decrypt(struct drvcrypt_rsa_ed *rsa_data)
 	}
 
 	if (ret) {
-		EMSG("ASU operation failed ret=0x%x", ret);
+		DMSG("ASU operation failed ret=0x%x", ret);
 		goto OUT;
 	}
 
 	if (!use_oaep && additional_status != ASU_RSA_DECRYPTION_SUCCESS) {
-		EMSG("Decrypt additional status=0x%08" PRIx32,
+		DMSG("Decrypt additional status=0x%08" PRIx32,
 		     additional_status);
 		ret = TEE_ERROR_GENERIC;
 		goto OUT;
@@ -1529,7 +1529,7 @@ static TEE_Result asu_rsa_decrypt(struct drvcrypt_rsa_ed *rsa_data)
 			actual_len = *fw_output_len_buf;
 
 		if (actual_len > rsa_data->key.n_size) {
-			EMSG("Invalid OAEP output length=%zu key=%zu",
+			DMSG("Invalid OAEP output length=%zu key=%zu",
 			     actual_len, rsa_data->key.n_size);
 			ret = TEE_ERROR_GENERIC;
 			goto OUT;
@@ -1640,7 +1640,7 @@ static TEE_Result asu_rsa_ssa_sign(struct drvcrypt_rsa_ssa *ssa_data)
 		ret = asu_rsa_sw_rsassa_sign(ssa_data);
 		goto OUT;
 	default:
-		EMSG("Unsupported algo=0x%" PRIx32, ssa_data->algo);
+		DMSG("Unsupported algo=0x%" PRIx32, ssa_data->algo);
 		ret = TEE_ERROR_NOT_SUPPORTED;
 		goto OUT;
 	}
@@ -1652,7 +1652,7 @@ static TEE_Result asu_rsa_ssa_sign(struct drvcrypt_rsa_ssa *ssa_data)
 
 	if (ssa_data->signature.length < ssa_data->key.n_size) {
 		ssa_data->signature.length = ssa_data->key.n_size;
-		EMSG("Short signature output buffer");
+		DMSG("Short signature output buffer");
 		ret = TEE_ERROR_SHORT_BUFFER;
 		goto OUT;
 	}
@@ -1667,14 +1667,14 @@ static TEE_Result asu_rsa_ssa_sign(struct drvcrypt_rsa_ssa *ssa_data)
 	ret = asu_rsa_sha_cfg_from_hash_algo(ssa_data->hash_algo,
 					     &sha_type, &sha_mode);
 	if (ret) {
-		EMSG("Hash cfg failed ret=0x%x, hash algo=0x%" PRIx32,
+		DMSG("Hash cfg failed ret=0x%x, hash algo=0x%" PRIx32,
 		     ret, ssa_data->hash_algo);
 		goto OUT;
 	}
 	ret = asu_rsa_pack_private_key(ssa_data->key.key, ssa_data->key.n_size,
 				       key_comp);
 	if (ret) {
-		EMSG("Private key pack failed ret=0x%x", ret);
+		DMSG("Private key pack failed ret=0x%x", ret);
 		goto OUT;
 	}
 
@@ -1707,7 +1707,7 @@ static TEE_Result asu_rsa_ssa_sign(struct drvcrypt_rsa_ssa *ssa_data)
 
 	ret = asu_rsa_pss_sign_gen_cmd(&req);
 	if (ret) {
-		EMSG("ASU command failed ret=0x%x", ret);
+		DMSG("ASU command failed ret=0x%x", ret);
 		goto OUT;
 	}
 
@@ -1780,7 +1780,7 @@ static TEE_Result asu_rsa_ssa_verify(struct drvcrypt_rsa_ssa *ssa_data)
 		ret = asu_rsa_sw_rsassa_verify(ssa_data);
 		goto OUT;
 	default:
-		EMSG("Unsupported algo=0x%" PRIx32, ssa_data->algo);
+		DMSG("Unsupported algo=0x%" PRIx32, ssa_data->algo);
 		ret = TEE_ERROR_NOT_IMPLEMENTED;
 		goto OUT;
 	}
@@ -1800,14 +1800,14 @@ static TEE_Result asu_rsa_ssa_verify(struct drvcrypt_rsa_ssa *ssa_data)
 	ret = asu_rsa_sha_cfg_from_hash_algo(ssa_data->hash_algo,
 					     &sha_type, &sha_mode);
 	if (ret) {
-		EMSG("Hash cfg failed ret=0x%x, hash algo=0x%" PRIx32,
+		DMSG("Hash cfg failed ret=0x%x, hash algo=0x%" PRIx32,
 		     ret, ssa_data->hash_algo);
 		goto OUT;
 	}
 	ret = asu_rsa_pack_public_key(ssa_data->key.key, ssa_data->key.n_size,
 				      key_comp);
 	if (ret) {
-		EMSG("Public key pack failed ret=0x%x", ret);
+		DMSG("Public key pack failed ret=0x%x", ret);
 		goto OUT;
 	}
 
@@ -1843,7 +1843,7 @@ static TEE_Result asu_rsa_ssa_verify(struct drvcrypt_rsa_ssa *ssa_data)
 
 	ret = asu_rsa_pss_sign_ver_cmd(&req);
 	if (ret)
-		EMSG("ASU command failed ret=0x%x", ret);
+		DMSG("ASU command failed ret=0x%x", ret);
 	else
 		DMSG("RSA signature verification successful");
 

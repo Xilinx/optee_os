@@ -6,4 +6,3 @@
 
 
 srcs-$(CFG_AMD_ASU_HASH) += asu_hash.c
-srcs-$(CFG_AMD_ASU_HUK) += asu_huk.c

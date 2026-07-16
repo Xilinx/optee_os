@@ -511,4 +511,4 @@ free:
 	return TEE_ERROR_GENERIC;
 }
 
-early_init_late(asu_init);
+service_init(asu_init);

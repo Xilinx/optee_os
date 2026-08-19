@@ -6,5 +6,3 @@
 
 global-incdirs-y += .
 srcs-y += main.c
-srcs-$(CFG_PLAT_DYN_CLUSTER) += topology.c
-srcs-$(CFG_PLAT_DYN_CLUSTER) += misc_versal2_a64.S
